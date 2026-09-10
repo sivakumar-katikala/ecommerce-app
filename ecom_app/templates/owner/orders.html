@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Orders - ShopEasy{% endblock %}
+{% block content %}
+    <div class="page-header">
+        <h1>All Orders</h1>
+    </div>
+
+    {% if orders %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Order #</th>
+                <th>Customer</th>
+                <th>Email</th>
+                <th>Date</th>
+                <th>Total</th>
+                <th>Payment</th>
+                <th>Status</th>
+                <th>Email Sent</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for order in orders %}
+            <tr>
+                <td>#{{ order.id }}</td>
+                <td>{{ order.customer_name or '-' }}</td>
+                <td>{{ order.contact_email or '-' }}</td>
+                <td>{{ order.order_date.strftime('%d %b %Y') }}</td>
+                <td>₹{{ '%.2f'|format(order.total_amount) }}</td>
+                <td>{{ order.payment_method.replace('_',' ')|title }}</td>
+                <td>
+                    <span class="stock-note {{ 'low' if order.status in ('FAILED', 'CANCELLED') }}">{{ order.status }}</span>
+                </td>
+                <td>
+                    {% if order.email_sent %}
+                        <span style="color:var(--success);">✅ Sent</span>
+                    {% elif order.status == 'PAID' %}
+                        <span style="color:var(--danger);" title="{{ order.email_error or '' }}">❌ Failed</span>
+                    {% else %}
+                        <span class="help-text">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if order.status == 'PAID' %}
+                    <form method="POST" action="{{ url_for('owner.resend_order_email', order_id=order.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline" style="padding:6px 10px;font-size:0.8rem;">
+                            {{ 'Resend Email' if order.email_sent else 'Send Email' }}
+                        </button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p>No orders yet.</p>
+    {% endif %}
+
+    <p style="margin-top:20px;"><a href="{{ url_for('owner.dashboard') }}">&larr; Back to Dashboard</a></p>
+{% endblock %}

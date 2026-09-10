@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Email Settings - ShopEasy{% endblock %}
+{% block content %}
+    <h1>Email Notification Settings</h1>
+    <p class="help-text">Check whether order confirmation emails are configured, and send a test email — no terminal needed.</p>
+
+    <div class="form-card" style="max-width:560px;">
+        <h2>Current Status</h2>
+        {% if mail_configured %}
+            <div class="stripe-notice ready">
+                ✅ Email sending is <strong>configured</strong>. Sending from: <code>{{ mail_username }}</code>
+            </div>
+        {% else %}
+            <div class="stripe-notice not-ready">
+                ⚠️ Email sending is <strong>NOT configured</strong> yet. <code>MAIL_USERNAME</code> and/or
+                <code>MAIL_PASSWORD</code> are missing. This is why buyers aren't receiving confirmation emails.
+            </div>
+            <p class="help-text" style="margin-top:14px;">
+                To fix this, stop the server and set these two environment variables in the <strong>same terminal window</strong>
+                before running <code>python app.py</code> again:
+            </p>
+            <pre style="background:#f0f3f6;padding:14px;border-radius:8px;font-size:0.85rem;overflow-x:auto;">$env:MAIL_USERNAME = "your_own_gmail@gmail.com"
+$env:MAIL_PASSWORD = "your16charapppassword"
+python app.py</pre>
+            <p class="help-text">
+                <code>MAIL_USERNAME</code> is <strong>your own</strong> sending account (like a store's "orders@" address),
+                not any buyer's email. <code>MAIL_PASSWORD</code> must be a Gmail <strong>App Password</strong> (16 characters) —
+                your normal Gmail login password will not work. Full steps are in the README "Email Setup" section.
+            </p>
+        {% endif %}
+
+        <h2 style="margin-top:28px;">Send a Test Email</h2>
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label for="recipient">Send test email to</label>
+                <input type="email" id="recipient" name="recipient" placeholder="you@gmail.com" required>
+            </div>
+            <button type="submit" class="btn btn-accent">Send Test Email</button>
+        </form>
+    </div>
+
+    <p style="margin-top:20px;"><a href="{{ url_for('owner.dashboard') }}">&larr; Back to Dashboard</a></p>
+{% endblock %}

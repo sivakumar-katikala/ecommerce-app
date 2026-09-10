@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}My Orders - ShopEasy{% endblock %}
+{% block content %}
+    <h1>My Orders</h1>
+    {% if orders %}
+    <table class="data-table">
+        <thead><tr><th>Order #</th><th>Date</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for order in orders %}
+            <tr>
+                <td>#{{ order.id }}</td>
+                <td>{{ order.order_date.strftime('%d %b %Y') }}</td>
+                <td>{{ order.items|sum(attribute='quantity') }}</td>
+                <td>₹{{ '%.2f'|format(order.total_amount) }}</td>
+                <td>{{ order.payment_method.replace('_',' ')|title }}</td>
+                <td>{{ order.status }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p>You haven't placed any orders yet. <a href="{{ url_for('products.index') }}">Start shopping</a>.</p>
+    {% endif %}
+{% endblock %}

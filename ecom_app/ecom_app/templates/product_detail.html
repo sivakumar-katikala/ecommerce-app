@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% block title %}{{ product.name }} - ShopEasy{% endblock %}
+{% block content %}
+    <div class="product-detail" data-product-id="{{ product.id }}">
+        <div>
+            <img src="{{ product.image_url or 'https://picsum.photos/seed/' ~ product.id ~ '/500/400' }}" alt="{{ product.name }}">
+        </div>
+        <div>
+            <span class="category-tag">{{ product.category }}</span>
+            <h1>{{ product.name }}</h1>
+            <p>{{ product.description }}</p>
+
+            <div class="price-row" id="detail-price-row">
+                {% if product.is_on_offer %}
+                    <span class="price-original">₹{{ '%.2f'|format(product.price) }}</span>
+                    <span class="price-current">₹{{ '%.2f'|format(product.discount_price) }}</span>
+                    <span class="discount-pct" id="detail-discount-pct">You save {{ product.discount_percent }}%</span>
+                {% else %}
+                    <span class="price-plain">₹{{ '%.2f'|format(product.price) }}</span>
+                {% endif %}
+            </div>
+
+            <p class="stock-note {{ 'low' if product.stock < 5 and product.stock > 0 }}" id="detail-stock-note">
+                {% if product.in_stock %}{{ product.stock }} items in stock{% else %}Currently out of stock{% endif %}
+            </p>
+
+            {% if current_user.is_authenticated %}
+                <div id="buy-section" style="{{ '' if product.in_stock else 'display:none;' }}">
+                    <form method="POST" action="{{ url_for('orders.add_to_cart', product_id=product.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="form-group" style="max-width:140px;">
+                            <label for="quantity">Quantity</label>
+                            <input type="number" id="quantity" name="quantity" value="1" min="1" max="{{ product.stock }}">
+                        </div>
+                        <button type="submit" class="btn btn-accent">Add to Cart</button>
+                    </form>
+                </div>
+                <p id="out-of-stock-msg" class="stock-note low" style="{{ 'display:none;' if product.in_stock else '' }}">
+                    This item just went out of stock. Please check back soon.
+                </p>
+            {% else %}
+                <a href="{{ url_for('auth.login', next=request.path) }}" class="btn">Log in to buy</a>
+            {% endif %}
+
+            <p style="margin-top:20px;"><a href="{{ url_for('products.index') }}">&larr; Back to products</a></p>
+        </div>
+    </div>
+
+    <script>
+        // Polls the server every few seconds for live price/discount/stock changes
+        // made by the owner, and updates this page in place — no reload needed.
+        (function () {
+            var root = document.querySelector('.product-detail[data-product-id]');
+            if (!root) return;
+            var productId = root.getAttribute('data-product-id');
+
+            function formatMoney(n) {
+                return '₹' + Number(n).toFixed(2);
+            }
+
+            function renderPriceRow(data) {
+                if (data.is_on_offer) {
+                    return '<span class="price-original">' + formatMoney(data.price) + '</span>' +
+                           '<span class="price-current">' + formatMoney(data.final_price) + '</span>' +
+                           '<span class="discount-pct" id="detail-discount-pct">You save ' + data.discount_percent + '%</span>';
+                }
+                return '<span class="price-plain">' + formatMoney(data.price) + '</span>';
+            }
+
+            function applyUpdate(data) {
+                var priceRow = document.getElementById('detail-price-row');
+                var stockNote = document.getElementById('detail-stock-note');
+                var buySection = document.getElementById('buy-section');
+                var outOfStockMsg = document.getElementById('out-of-stock-msg');
+                var quantityInput = document.getElementById('quantity');
+
+                if (priceRow) priceRow.innerHTML = renderPriceRow(data);
+
+                if (stockNote) {
+                    var low = (data.stock < 5 && data.stock > 0);
+                    stockNote.textContent = data.in_stock ? (data.stock + ' items in stock') : 'Currently out of stock';
+                    stockNote.className = 'stock-note' + (low ? ' low' : '');
+                }
+
+                if (quantityInput) {
+                    quantityInput.max = data.stock;
+                    if (parseInt(quantityInput.value || '1', 10) > data.stock) {
+                        quantityInput.value = Math.max(1, data.stock);
+                    }
+                }
+
+                if (buySection && outOfStockMsg) {
+                    if (data.in_stock) {
+                        buySection.style.display = '';
+                        outOfStockMsg.style.display = 'none';
+                    } else {
+                        buySection.style.display = 'none';
+                        outOfStockMsg.style.display = '';
+                    }
+                }
+            }
+
+            function poll() {
+                fetch('/api/product/' + productId + '/status')
+                    .then(function (res) { return res.ok ? res.json() : null; })
+                    .then(function (data) {
+                        if (data) applyUpdate(data);
+                    })
+                    .catch(function () { /* silently ignore transient network errors */ });
+            }
+
+            poll();
+            setInterval(poll, 3000); // check for owner updates every 3 seconds
+        })();
+    </script>
+{% endblock %}

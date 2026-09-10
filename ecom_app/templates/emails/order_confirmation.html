@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order Confirmed</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f6f8;font-family:Arial,Helvetica,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f8;padding:24px 0;">
+<tr>
+<td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e2e6ea;">
+
+  <!-- Header -->
+  <tr>
+    <td style="background-color:#1a5276;padding:28px 32px;text-align:center;">
+      {% if store.logo_url %}
+        <img src="{{ store.logo_url }}" alt="{{ store.name }}" style="max-height:48px;margin-bottom:10px;">
+      {% else %}
+        <div style="font-size:24px;font-weight:bold;color:#ffffff;margin-bottom:6px;">{{ store.name }}</div>
+      {% endif %}
+      <div style="color:#eaf2f8;font-size:14px;">Order Confirmation</div>
+    </td>
+  </tr>
+
+  <!-- Success banner -->
+  <tr>
+    <td style="padding:32px 32px 8px 32px;text-align:center;">
+      <div style="font-size:40px;line-height:1;margin-bottom:10px;">✅</div>
+      <h1 style="margin:0 0 8px 0;color:#1a5276;font-size:22px;">Payment Successful!</h1>
+      <p style="margin:0 0 4px 0;font-size:15px;color:#22303c;">Hi {{ order.customer_name or 'there' }},</p>
+      <p style="margin:0 0 22px 0;font-size:14px;color:#6b7885;">
+        Thank you for your purchase — your order has been confirmed and is being prepared.
+      </p>
+    </td>
+  </tr>
+
+  <!-- Order / Customer details card -->
+  <tr>
+    <td style="padding:0 32px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7f8fa;border-radius:8px;border:1px solid #e2e6ea;">
+        <tr>
+          <td style="padding:16px 20px;font-size:13px;color:#22303c;line-height:1.9;">
+            <strong>Order ID:</strong> #{{ order.id }}<br>
+            <strong>Invoice Number:</strong> {{ order.invoice_number }}<br>
+            <strong>Order Date:</strong> {{ order.order_date.strftime('%d %b %Y') }}<br>
+            <strong>Payment Status:</strong> <span style="color:#1e8449;font-weight:bold;">{{ order.status }}</span><br>
+            <strong>Customer Name:</strong> {{ order.customer_name or '-' }}<br>
+            <strong>Customer Email:</strong> {{ order.contact_email or '-' }}
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <!-- Ordered items -->
+  <tr>
+    <td style="padding:24px 32px 0 32px;">
+      <h2 style="margin:0 0 12px 0;font-size:15px;color:#1a5276;">Ordered Items</h2>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+        <tr>
+          <th style="text-align:left;padding:8px 6px;border-bottom:2px solid #1a5276;font-size:12px;color:#1a5276;">Product</th>
+          <th style="text-align:center;padding:8px 6px;border-bottom:2px solid #1a5276;font-size:12px;color:#1a5276;">Qty</th>
+          <th style="text-align:right;padding:8px 6px;border-bottom:2px solid #1a5276;font-size:12px;color:#1a5276;">Price</th>
+          <th style="text-align:right;padding:8px 6px;border-bottom:2px solid #1a5276;font-size:12px;color:#1a5276;">Total</th>
+        </tr>
+        {% for entry in items %}
+        <tr>
+          <td style="padding:10px 6px;border-bottom:1px solid #e2e6ea;font-size:13px;color:#22303c;">
+            <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+              {% if entry.product.image_url %}
+              <td style="padding-right:10px;">
+                <img src="{{ entry.product.image_url }}" alt="{{ entry.product.name }}" width="44" height="44" style="border-radius:6px;object-fit:cover;display:block;">
+              </td>
+              {% endif %}
+              <td style="vertical-align:middle;">{{ entry.product.name }}</td>
+            </tr></table>
+          </td>
+          <td style="padding:10px 6px;border-bottom:1px solid #e2e6ea;text-align:center;font-size:13px;color:#22303c;">{{ entry.quantity }}</td>
+          <td style="padding:10px 6px;border-bottom:1px solid #e2e6ea;text-align:right;font-size:13px;color:#22303c;">₹{{ '%.2f'|format(entry.price_at_purchase) }}</td>
+          <td style="padding:10px 6px;border-bottom:1px solid #e2e6ea;text-align:right;font-size:13px;color:#22303c;">₹{{ '%.2f'|format(entry.line_total) }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </td>
+  </tr>
+
+  <!-- Order summary -->
+  <tr>
+    <td style="padding:20px 32px 0 32px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr><td style="padding:4px 0;font-size:13px;color:#6b7885;">Subtotal</td><td style="padding:4px 0;font-size:13px;color:#22303c;text-align:right;">₹{{ '%.2f'|format(order.subtotal_amount) }}</td></tr>
+        <tr><td style="padding:4px 0;font-size:13px;color:#6b7885;">Discount</td><td style="padding:4px 0;font-size:13px;color:#c0392b;text-align:right;">- ₹{{ '%.2f'|format(order.discount_amount) }}</td></tr>
+        <tr><td style="padding:4px 0;font-size:13px;color:#6b7885;">Tax</td><td style="padding:4px 0;font-size:13px;color:#22303c;text-align:right;">₹{{ '%.2f'|format(order.tax_amount) }}</td></tr>
+        <tr><td style="padding:4px 0;font-size:13px;color:#6b7885;">Shipping</td><td style="padding:4px 0;font-size:13px;color:#22303c;text-align:right;">{{ 'FREE' if order.shipping_amount == 0 else '₹%.2f'|format(order.shipping_amount) }}</td></tr>
+        <tr><td colspan="2" style="border-top:1px solid #e2e6ea;padding-top:10px;"></td></tr>
+        <tr><td style="padding:6px 0;font-size:16px;font-weight:bold;color:#1a5276;">Grand Total</td><td style="padding:6px 0;font-size:18px;font-weight:bold;color:#1e8449;text-align:right;">₹{{ '%.2f'|format(order.total_amount) }}</td></tr>
+      </table>
+    </td>
+  </tr>
+
+  <!-- Shipping address -->
+  <tr>
+    <td style="padding:24px 32px 0 32px;">
+      <h2 style="margin:0 0 8px 0;font-size:15px;color:#1a5276;">Shipping Address</h2>
+      <p style="margin:0;font-size:13px;color:#22303c;line-height:1.6;">
+        {{ order.customer_name or '' }}<br>
+        {{ (order.delivery_address or '')|replace('\n', '<br>')|safe }}<br>
+        {{ order.contact_phone or '' }}
+      </p>
+      {% if order.estimated_delivery_date %}
+      <p style="margin:10px 0 0 0;font-size:13px;color:#1e8449;font-weight:bold;">
+        📦 Estimated Delivery: {{ order.estimated_delivery_date.strftime('%d %b %Y') }}
+      </p>
+      {% endif %}
+    </td>
+  </tr>
+
+  <!-- Payment information -->
+  <tr>
+    <td style="padding:20px 32px 0 32px;">
+      <h2 style="margin:0 0 8px 0;font-size:15px;color:#1a5276;">Payment Information</h2>
+      <p style="margin:0;font-size:13px;color:#22303c;line-height:1.8;">
+        <strong>Payment Method:</strong> {{ order.payment_method.replace('_',' ').title() }}<br>
+        {% if order.stripe_payment_intent_id %}
+        <strong>Stripe Payment Intent ID:</strong> {{ order.stripe_payment_intent_id }}<br>
+        {% elif order.payment_reference %}
+        <strong>Transaction Reference:</strong> {{ order.payment_reference }}<br>
+        {% endif %}
+        <strong>Payment Status:</strong> <span style="color:#1e8449;">{{ order.status }}</span>
+      </p>
+    </td>
+  </tr>
+
+  <!-- CTA buttons -->
+  <tr>
+    <td style="padding:28px 32px;text-align:center;">
+      <a href="{{ track_order_url }}" style="display:inline-block;background-color:#1a5276;color:#ffffff;text-decoration:none;font-size:13px;font-weight:bold;padding:12px 22px;border-radius:6px;margin:4px;">Track Order</a>
+      <a href="{{ invoice_url }}" style="display:inline-block;background-color:#e67e22;color:#ffffff;text-decoration:none;font-size:13px;font-weight:bold;padding:12px 22px;border-radius:6px;margin:4px;">Download Invoice</a>
+    </td>
+  </tr>
+
+  <!-- Footer -->
+  <tr>
+    <td style="background-color:#123a52;padding:24px 32px;text-align:center;">
+      <p style="margin:0 0 8px 0;color:#cfe3f0;font-size:13px;">Thank you for shopping with {{ store.name }}!</p>
+      <p style="margin:0 0 4px 0;color:#9fb8c8;font-size:12px;">
+        Support: <a href="mailto:{{ store.support_email }}" style="color:#9fb8c8;">{{ store.support_email }}</a>
+        &nbsp;|&nbsp; {{ store.support_phone }}
+      </p>
+      <p style="margin:0 0 12px 0;color:#9fb8c8;font-size:12px;">
+        <a href="{{ store.website }}" style="color:#9fb8c8;">{{ store.website }}</a>
+      </p>
+      {% if store.social_facebook or store.social_instagram or store.social_twitter %}
+      <p style="margin:0 0 12px 0;">
+        {% if store.social_facebook %}<a href="{{ store.social_facebook }}" style="color:#9fb8c8;font-size:12px;margin:0 6px;">Facebook</a>{% endif %}
+        {% if store.social_instagram %}<a href="{{ store.social_instagram }}" style="color:#9fb8c8;font-size:12px;margin:0 6px;">Instagram</a>{% endif %}
+        {% if store.social_twitter %}<a href="{{ store.social_twitter }}" style="color:#9fb8c8;font-size:12px;margin:0 6px;">Twitter</a>{% endif %}
+      </p>
+      {% endif %}
+      <p style="margin:0;color:#6b8494;font-size:11px;">&copy; {{ current_year }} {{ store.name }}. All rights reserved.</p>
+    </td>
+  </tr>
+
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>
