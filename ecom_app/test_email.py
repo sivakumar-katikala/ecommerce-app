@@ -81,7 +81,8 @@ def send_sample_to(app, recipient):
         print('-' * 60)
 
         sample_order, sample_items = build_sample_order_and_items(recipient)
-        success = send_order_confirmation_email(sample_order, sample_items)
+        with app.test_request_context(base_url="https://ecommerce-app-3-7bjw.onrender.com"):
+         success = send_order_confirmation_email(sample_order, sample_items)
         _report_result(success, recipient, sample_order.email_error)
 
 
