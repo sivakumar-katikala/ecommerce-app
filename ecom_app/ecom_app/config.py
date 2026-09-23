@@ -6,7 +6,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 class Config:
     # In production, ALWAYS set SECRET_KEY via environment variable.
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production-8f42a1c9')
-
+    SERVER_NAME = os.getenv("SERVER_NAME")
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         'DATABASE_URL',
         'sqlite:///' + os.path.join(basedir, 'instance', 'ecom.db')
@@ -34,9 +34,9 @@ class Config:
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', MAIL_USERNAME)
-
+    
     # Emails send automatically whenever MAIL_USERNAME/MAIL_PASSWORD are set —
-    # no separate opt-in flag. This matches "send automatically after payment".
+    # no separate opt-in flag. This matches "send automatically after payment".  
 
     # ---- Stripe (real card payment gateway) ----
     # Get test-mode keys from https://dashboard.stripe.com/test/apikeys

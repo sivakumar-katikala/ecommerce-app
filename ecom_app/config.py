@@ -6,7 +6,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 class Config:
     # In production, ALWAYS set SECRET_KEY via environment variable.
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production-8f42a1c9')
-
+    SERVER_NAME = os.getenv("SERVER_NAME")
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         'DATABASE_URL',
         'sqlite:///' + os.path.join(basedir, 'instance', 'ecom.db')
