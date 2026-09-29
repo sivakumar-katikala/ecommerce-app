@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% block title %}Products - ShopEasy{% endblock %}
+{% block content %}
+    <div class="page-header">
+        <h1>Our Products</h1>
+    </div>
+
+    {% if categories %}
+    <div class="category-filters">
+        <a href="{{ url_for('products.index') }}" class="{{ 'active' if not active_category }}">All</a>
+        {% for cat in categories %}
+            <a href="{{ url_for('products.index', category=cat) }}" class="{{ 'active' if active_category == cat }}">{{ cat }}</a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if products %}
+    <div class="product-grid">
+        {% for product in products %}
+        <a class="product-card" href="{{ url_for('products.detail', product_id=product.id) }}" data-product-id="{{ product.id }}">
+            <span class="offer-badge" id="offer-badge-{{ product.id }}" style="{{ '' if product.is_on_offer else 'display:none;' }}">-{{ product.discount_percent }}%</span>
+            <img src="{{ product.image_url or 'https://picsum.photos/seed/' ~ product.id ~ '/400/300' }}" alt="{{ product.name }}">
+            <div class="body">
+                <span class="category-tag">{{ product.category }}</span>
+                <h3>{{ product.name }}</h3>
+                <div class="price-row" id="price-row-{{ product.id }}">
+                    {% if product.is_on_offer %}
+                        <span class="price-original">₹{{ '%.2f'|format(product.price) }}</span>
+                        <span class="price-current">₹{{ '%.2f'|format(product.discount_price) }}</span>
+                    {% else %}
+                        <span class="price-plain">₹{{ '%.2f'|format(product.price) }}</span>
+                    {% endif %}
+                </div>
+                <span class="stock-note {{ 'low' if product.stock < 5 and product.stock > 0 }}" id="stock-note-{{ product.id }}">
+                    {% if product.in_stock %}{{ product.stock }} in stock{% else %}Out of stock{% endif %}
+                </span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+        <p>No products found in this category.</p>
+    {% endif %}
+
+    <script>
+        // Polls the server every few seconds for live price/discount/stock changes
+        // made by the owner, and updates the page in place — no reload needed.
+        (function () {
+            var cards = document.querySelectorAll('.product-card[data-product-id]');
+            if (!cards.length) return;
+
+            function formatMoney(n) {
+                return '₹' + Number(n).toFixed(2);
+            }
+
+            function renderPriceRow(data) {
+                if (data.is_on_offer) {
+                    return '<span class="price-original">' + formatMoney(data.price) + '</span>' +
+                           '<span class="price-current">' + formatMoney(data.final_price) + '</span>';
+                }
+                return '<span class="price-plain">' + formatMoney(data.price) + '</span>';
+            }
+
+            function renderStockNote(data) {
+                var low = (data.stock < 5 && data.stock > 0);
+                var text = data.in_stock ? (data.stock + ' in stock') : 'Out of stock';
+                return { text: text, low: low };
+            }
+
+            function applyUpdate(id, data) {
+                var priceRow = document.getElementById('price-row-' + id);
+                var stockNote = document.getElementById('stock-note-' + id);
+                var offerBadge = document.getElementById('offer-badge-' + id);
+
+                if (priceRow) priceRow.innerHTML = renderPriceRow(data);
+
+                if (stockNote) {
+                    var s = renderStockNote(data);
+                    stockNote.textContent = s.text;
+                    stockNote.className = 'stock-note' + (s.low ? ' low' : '');
+                }
+
+                if (offerBadge) {
+                    if (data.is_on_offer) {
+                        offerBadge.style.display = '';
+                        offerBadge.textContent = '-' + data.discount_percent + '%';
+                    } else {
+                        offerBadge.style.display = 'none';
+                    }
+                }
+            }
+
+            function poll() {
+                fetch('/api/products/status')
+                    .then(function (res) { return res.ok ? res.json() : null; })
+                    .then(function (data) {
+                        if (!data) return;
+                        Object.keys(data).forEach(function (id) {
+                            applyUpdate(id, data[id]);
+                        });
+                    })
+                    .catch(function () { /* silently ignore transient network errors */ });
+            }
+
+            poll();
+            setInterval(poll, 4000); // check for owner updates every 4 seconds
+        })();
+    </script>
+{% endblock %}

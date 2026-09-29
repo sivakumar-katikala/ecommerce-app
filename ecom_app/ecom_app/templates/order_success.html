@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}Order Confirmed - ShopEasy{% endblock %}
+{% block content %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+
+<div class="container" style="max-width:800px;">
+
+  {% if order.status == 'PENDING' %}
+    {% set attempt = request.args.get('attempt', 0) | int %}
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary mb-3" role="status" style="width:3rem;height:3rem;"></div>
+      <h2>Confirming your payment...</h2>
+      {% if attempt < 10 %}
+        <p class="text-muted">This usually takes just a few seconds. This page will refresh automatically.</p>
+      {% else %}
+        <p class="text-muted">This is taking longer than expected. Your payment may still be processing on Stripe's side.</p>
+        <a href="{{ url_for('orders.order_success', order_id=order.id) }}" class="btn btn-primary mt-2">Check Status Again</a>
+        <p class="text-muted small mt-3">Still stuck? Your order is saved as <strong>#{{ order.id }}</strong> — check
+          <a href="{{ url_for('orders.my_orders') }}">My Orders</a> later, or contact support if a card charge went
+          through but this page never confirms it.</p>
+      {% endif %}
+    </div>
+    {% if attempt < 10 %}
+      <meta http-equiv="refresh" content="3;url={{ url_for('orders.order_success', order_id=order.id, attempt=attempt + 1) }}">
+    {% endif %}
+  {% elif order.status == 'FAILED' %}
+    <div class="text-center py-5">
+      <div style="font-size:64px;">⚠️</div>
+      <h2 class="text-danger">There was a problem with this order</h2>
+      <p class="text-muted">Your payment may have been captured, but an item went out of stock before we could confirm it. Please contact support — we'll sort this out and refund you if needed.</p>
+      <a href="{{ url_for('products.index') }}" class="btn btn-primary mt-2">Back to Shop</a>
+    </div>
+  {% else %}
+
+  <!-- Success animation + heading -->
+  <div class="text-center py-4">
+    <div class="checkmark-circle mx-auto mb-3">
+      <svg viewBox="0 0 52 52" width="72" height="72">
+        <circle class="checkmark-circle-bg" cx="26" cy="26" r="25" fill="none"/>
+        <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+      </svg>
+    </div>
+    <h1 class="fw-bold" style="color:#1a5276;">Payment Successful!</h1>
+    <p class="text-muted fs-5">Thank you{{ ', ' + order.customer_name if order.customer_name else '' }} — your order is confirmed.</p>
+  </div>
+
+  <!-- Order meta card -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-sm-6"><small class="text-muted d-block">Order ID</small><strong>#{{ order.id }}</strong></div>
+        <div class="col-sm-6"><small class="text-muted d-block">Payment ID</small><strong>{{ order.stripe_payment_intent_id or order.payment_reference or 'N/A' }}</strong></div>
+        <div class="col-sm-6"><small class="text-muted d-block">Order Date</small><strong>{{ order.order_date.strftime('%d %b %Y') }}</strong></div>
+        <div class="col-sm-6"><small class="text-muted d-block">Estimated Delivery</small><strong class="text-success">{{ order.estimated_delivery_date.strftime('%d %b %Y') if order.estimated_delivery_date else 'TBD' }}</strong></div>
+        <div class="col-sm-6"><small class="text-muted d-block">Customer Name</small><strong>{{ order.customer_name or '-' }}</strong></div>
+        <div class="col-sm-6"><small class="text-muted d-block">Customer Email</small><strong>{{ order.contact_email or '-' }}</strong></div>
+        <div class="col-sm-6"><small class="text-muted d-block">Payment Method</small><strong>{{ order.payment_method.replace('_',' ').title() }}</strong></div>
+        <div class="col-sm-6"><small class="text-muted d-block">Delivery Address</small><strong>{{ order.delivery_address or '-' }}</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ordered products -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-white fw-bold">Ordered Products</div>
+    <div class="table-responsive">
+      <table class="table mb-0 align-middle">
+        <thead class="table-light">
+          <tr><th>Product</th><th class="text-center">Qty</th><th class="text-end">Price</th><th class="text-end">Total</th></tr>
+        </thead>
+        <tbody>
+          {% for item in order.items %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                {% if item.product.image_url %}
+                <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}" width="44" height="44" style="object-fit:cover;border-radius:6px;">
+                {% endif %}
+                <span>{{ item.product.name }}</span>
+              </div>
+            </td>
+            <td class="text-center">{{ item.quantity }}</td>
+            <td class="text-end">₹{{ '%.2f'|format(item.price_at_purchase) }}</td>
+            <td class="text-end">₹{{ '%.2f'|format(item.line_total) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Order summary -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between py-1"><span class="text-muted">Subtotal</span><span>₹{{ '%.2f'|format(order.subtotal_amount) }}</span></div>
+      <div class="d-flex justify-content-between py-1"><span class="text-muted">Discount</span><span class="text-danger">- ₹{{ '%.2f'|format(order.discount_amount) }}</span></div>
+      <div class="d-flex justify-content-between py-1"><span class="text-muted">Tax</span><span>₹{{ '%.2f'|format(order.tax_amount) }}</span></div>
+      <div class="d-flex justify-content-between py-1"><span class="text-muted">Shipping</span><span>{{ 'FREE' if order.shipping_amount == 0 else '₹%.2f'|format(order.shipping_amount) }}</span></div>
+      <hr>
+      <div class="d-flex justify-content-between fs-5 fw-bold"><span>Total Amount Paid</span><span class="text-success">₹{{ '%.2f'|format(order.total_amount) }}</span></div>
+    </div>
+  </div>
+
+  {% if order.email_sent %}
+    <div class="alert alert-success">✅ A confirmation email with your invoice has been sent to {{ order.contact_email }}.</div>
+  {% else %}
+    <div class="alert alert-warning">⚠️ We couldn't send a confirmation email right now — you can still download your invoice below, and view this order anytime under "My Orders".</div>
+  {% endif %}
+
+  <!-- Action buttons -->
+  <div class="d-flex flex-wrap gap-2 justify-content-center pb-5">
+    <a href="{{ url_for('products.index') }}" class="btn btn-outline-primary px-4">Continue Shopping</a>
+    <a href="{{ url_for('orders.my_orders') }}" class="btn btn-outline-primary px-4">View Orders</a>
+    <a href="{{ url_for('orders.download_invoice', order_id=order.id) }}" class="btn btn-primary px-4">Download Invoice</a>
+  </div>
+
+  {% endif %}
+</div>
+
+<style>
+  .checkmark-circle-bg { stroke: #1e8449; stroke-width: 2; stroke-dasharray: 166; stroke-dashoffset: 166; animation: circle-draw 0.6s ease-out forwards; }
+  .checkmark-check { stroke: #1e8449; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 48; stroke-dashoffset: 48; animation: check-draw 0.4s 0.5s ease-out forwards; }
+  @keyframes circle-draw { to { stroke-dashoffset: 0; } }
+  @keyframes check-draw { to { stroke-dashoffset: 0; } }
+</style>
+{% endblock %}

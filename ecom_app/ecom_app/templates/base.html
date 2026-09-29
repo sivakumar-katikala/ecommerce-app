@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ShopEasy{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a href="{{ url_for('products.index') }}" class="brand">Shop<span>Easy</span></a>
+            <nav class="main-nav">
+                <a href="{{ url_for('products.index') }}">Products</a>
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('orders.view_cart') }}">Cart</a>
+                    <a href="{{ url_for('orders.my_orders') }}">My Orders</a>
+                    {% if current_user.is_owner %}
+                        <a href="{{ url_for('owner.dashboard') }}">Owner Dashboard</a>
+                    {% endif %}
+                    <span class="nav-user">Hi, {{ current_user.username }}</span>
+                    <a href="{{ url_for('auth.logout') }}">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}">Login</a>
+                    <a href="{{ url_for('auth.signup') }}" class="nav-cta">Sign Up</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-wrap">
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>&copy; {{ current_year }} ShopEasy. Built with Flask.</p>
+        </div>
+    </footer>
+</body>
+</html>

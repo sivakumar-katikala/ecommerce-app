@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% block title %}Checkout - ShopEasy{% endblock %}
+{% block content %}
+    <h1>Checkout</h1>
+
+    <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:30px;align-items:start;">
+        <div class="form-card" style="max-width:none;">
+            <h2>Payment Details</h2>
+            <form method="POST" novalidate id="checkout-form">
+                {{ form.hidden_tag() }}
+
+                <div class="form-group">
+                    {{ form.full_name.label }}
+                    {{ form.full_name() }}
+                    {% for error in form.full_name.errors %}<div class="field-errors">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div class="form-group">
+                        {{ form.contact_email.label }}
+                        {{ form.contact_email(placeholder="you@gmail.com") }}
+                        {% for error in form.contact_email.errors %}<div class="field-errors">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.contact_phone.label }}
+                        {{ form.contact_phone(placeholder="9876543210") }}
+                        {% for error in form.contact_phone.errors %}<div class="field-errors">{{ error }}</div>{% endfor %}
+                    </div>
+                </div>
+                <p class="help-text" style="margin-top:-8px;">Your order confirmation will be emailed here.</p>
+
+                <div class="form-group">
+                    {{ form.address.label }}
+                    {{ form.address(rows=3) }}
+                    {% for error in form.address.errors %}<div class="field-errors">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div class="form-group">
+                    {{ form.payment_method.label }}
+                    {{ form.payment_method(id="payment_method") }}
+                    {% for error in form.payment_method.errors %}<div class="field-errors">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div class="payment-fields" data-method="STRIPE">
+                    <div class="stripe-notice {{ 'ready' if stripe_configured else 'not-ready' }}">
+                        {% if stripe_configured %}
+                            🔒 You'll be redirected to Stripe's secure payment page to enter your card details.
+                            This app never sees or stores your card number — Stripe handles it entirely.
+                        {% else %}
+                            ⚠️ Stripe is not configured on this server yet (missing <code>STRIPE_SECRET_KEY</code>).
+                            Choose another payment method for now, or see the README "Stripe Setup" section.
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="payment-fields" data-method="UPI">
+                    <div class="form-group">
+                        {{ form.upi_id.label }}
+                        {{ form.upi_id(placeholder="yourname@bank") }}
+                        {% for error in form.upi_id.errors %}<div class="field-errors">{{ error }}</div>{% endfor %}
+                    </div>
+                </div>
+
+                <div class="payment-fields" data-method="NET_BANKING">
+                    <div class="form-group">
+                        {{ form.bank_name.label }}
+                        {{ form.bank_name(placeholder="e.g. State Bank of India") }}
+                        {% for error in form.bank_name.errors %}<div class="field-errors">{{ error }}</div>{% endfor %}
+                    </div>
+                </div>
+
+                <div class="payment-fields" data-method="DEBIT_CARD CREDIT_CARD">
+                    <div class="form-group">
+                        {{ form.card_number.label }}
+                        {{ form.card_number(placeholder="1234 5678 9012 3456", autocomplete="cc-number") }}
+                        {% for error in form.card_number.errors %}<div class="field-errors">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                        <div class="form-group">
+                            {{ form.card_expiry.label }}
+                            {{ form.card_expiry(placeholder="MM/YY", autocomplete="cc-exp") }}
+                            {% for error in form.card_expiry.errors %}<div class="field-errors">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="form-group">
+                            {{ form.card_cvv.label }}
+                            {{ form.card_cvv(placeholder="123", autocomplete="cc-csc") }}
+                            {% for error in form.card_cvv.errors %}<div class="field-errors">{{ error }}</div>{% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payment-fields" data-method="WALLET">
+                    <div class="form-group">
+                        {{ form.wallet_provider.label }}
+                        {{ form.wallet_provider() }}
+                        {% for error in form.wallet_provider.errors %}<div class="field-errors">{{ error }}</div>{% endfor %}
+                    </div>
+                </div>
+
+                <p class="help-text">
+                    "Card (Stripe Secure Checkout)" uses Stripe's real, PCI-compliant payment page — recommended.
+                    The other card option here ("Debit/Credit Card (demo)") is a UI-only demo: no real payment is
+                    processed, and CVV/expiry are used only to validate the form and are <strong>never stored</strong>;
+                    only a masked reference (e.g. "Credit Card: ****1234") is saved against your order.
+                </p>
+
+                {{ form.submit(class_="btn btn-accent") }}
+            </form>
+        </div>
+
+        <div class="summary-box">
+            <h3>Order Summary</h3>
+            {% for entry in items %}
+                <div style="display:flex;justify-content:space-between;font-size:0.9rem;margin-bottom:6px;">
+                    <span>{{ entry.product.name }} &times; {{ entry.quantity }}</span>
+                    <span>₹{{ '%.2f'|format(entry.product.final_price * entry.quantity) }}</span>
+                </div>
+            {% endfor %}
+            <hr style="border-color:var(--border);margin:12px 0;">
+            <div style="display:flex;justify-content:space-between;font-size:0.85rem;color:var(--muted);margin-bottom:4px;"><span>Subtotal</span><span>₹{{ '%.2f'|format(pricing.subtotal) }}</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.85rem;color:var(--danger);margin-bottom:4px;"><span>Discount</span><span>- ₹{{ '%.2f'|format(pricing.discount) }}</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.85rem;color:var(--muted);margin-bottom:4px;"><span>Tax</span><span>₹{{ '%.2f'|format(pricing.tax) }}</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.85rem;color:var(--muted);margin-bottom:4px;"><span>Shipping</span><span>{{ 'FREE' if pricing.shipping == 0 else '₹%.2f'|format(pricing.shipping) }}</span></div>
+            <div class="total-line"><span>Total</span><span>₹{{ '%.2f'|format(pricing.total) }}</span></div>
+            <p class="help-text" style="margin-top:14px;">You can track your order anytime under "My Orders".</p>
+        </div>
+    </div>
+
+    <script>
+        function updatePaymentFields() {
+            var method = document.getElementById('payment_method').value;
+            document.querySelectorAll('.payment-fields').forEach(function (el) {
+                var methods = el.dataset.method.split(' ');
+                el.classList.toggle('active', methods.indexOf(method) !== -1);
+            });
+        }
+        document.getElementById('payment_method').addEventListener('change', updatePaymentFields);
+        updatePaymentFields();
+    </script>
+{% endblock %}

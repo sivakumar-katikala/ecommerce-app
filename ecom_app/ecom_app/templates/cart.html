@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Your Cart - ShopEasy{% endblock %}
+{% block content %}
+    <h1>Your Cart</h1>
+
+    {% if items %}
+    <table class="data-table">
+        <thead>
+            <tr><th>Product</th><th>Price</th><th>Qty</th><th>Subtotal</th><th></th></tr>
+        </thead>
+        <tbody>
+        {% for entry in items %}
+            <tr>
+                <td>{{ entry.product.name }}</td>
+                <td>
+                    {% if entry.product.is_on_offer %}
+                        <span class="price-original">₹{{ '%.2f'|format(entry.product.price) }}</span>
+                        <span class="price-current">₹{{ '%.2f'|format(entry.product.discount_price) }}</span>
+                    {% else %}
+                        ₹{{ '%.2f'|format(entry.product.price) }}
+                    {% endif %}
+                </td>
+                <td>{{ entry.quantity }}</td>
+                <td>₹{{ '%.2f'|format(entry.product.final_price * entry.quantity) }}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('orders.remove_from_cart', product_id=entry.product.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger" style="padding:6px 10px;font-size:0.8rem;">Remove</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="summary-box">
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;color:var(--muted);margin-bottom:4px;"><span>Subtotal</span><span>₹{{ '%.2f'|format(pricing.subtotal) }}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;color:var(--danger);margin-bottom:4px;"><span>Discount</span><span>- ₹{{ '%.2f'|format(pricing.discount) }}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;color:var(--muted);margin-bottom:4px;"><span>Tax</span><span>₹{{ '%.2f'|format(pricing.tax) }}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;color:var(--muted);margin-bottom:4px;"><span>Shipping</span><span>{{ 'FREE' if pricing.shipping == 0 else '₹%.2f'|format(pricing.shipping) }}</span></div>
+        <div class="total-line"><span>Total</span><span>₹{{ '%.2f'|format(pricing.total) }}</span></div>
+        <a href="{{ url_for('orders.checkout') }}" class="btn btn-accent" style="margin-top:14px;display:inline-block;">Proceed to Checkout</a>
+    </div>
+    {% else %}
+        <p>Your cart is empty. <a href="{{ url_for('products.index') }}">Browse products</a>.</p>
+    {% endif %}
+{% endblock %}
