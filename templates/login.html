@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Log In - ShopEasy{% endblock %}
+{% block content %}
+<div class="form-card">
+    <h2>Log In</h2>
+    <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="form-group">
+            {{ form.username.label }}
+            {{ form.username(placeholder="Username or email") }}
+            {% for error in form.username.errors %}<div class="field-errors">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+            {{ form.password.label }}
+            {{ form.password() }}
+            {% for error in form.password.errors %}<div class="field-errors">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group checkbox-row">
+            {{ form.remember_me() }}
+            {{ form.remember_me.label }}
+        </div>
+
+        {{ form.submit(class_="btn") }}
+    </form>
+    <p style="margin-top:16px;">No account yet? <a href="{{ url_for('auth.signup') }}">Sign up</a></p>
+    <p class="help-text">Demo owner login: <strong>owner</strong> / <strong>OwnerPass123</strong></p>
+</div>
+{% endblock %}

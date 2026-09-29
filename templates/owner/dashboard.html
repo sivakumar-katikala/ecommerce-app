@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% block title %}Owner Dashboard - ShopEasy{% endblock %}
+{% block content %}
+    <div class="page-header">
+        <h1>Owner Dashboard</h1>
+        <div style="display:flex;gap:10px;">
+            <a href="{{ url_for('owner.orders_list') }}" class="btn btn-outline">📦 Orders</a>
+            <a href="{{ url_for('owner.test_email') }}" class="btn btn-outline">✉️ Email Settings</a>
+            <a href="{{ url_for('owner.add_product') }}" class="btn btn-accent">+ Add Product</a>
+        </div>
+    </div>
+
+    <div class="stat-cards">
+        <div class="stat-card">
+            <div class="value">₹{{ '%.2f'|format(total_income) }}</div>
+            <div class="label">Total Income</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ total_sales }}</div>
+            <div class="label">Total Orders</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ total_items }}</div>
+            <div class="label">Items Sold</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ products|length }}</div>
+            <div class="label">Products Listed</div>
+        </div>
+    </div>
+
+    <h2 class="section-title">Sales Trends</h2>
+    {% if chart_labels %}
+    <div class="chart-grid">
+        <div class="chart-card">
+            <canvas id="incomeChart" height="220"></canvas>
+        </div>
+        <div class="chart-card">
+            <canvas id="itemsChart" height="220"></canvas>
+        </div>
+        {% if top_product_labels %}
+        <div class="chart-card chart-card-wide">
+            <canvas id="topProductsChart" height="220"></canvas>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            var labels = {{ chart_labels|tojson }};
+            var incomeData = {{ chart_income|tojson }};
+            var itemsData = {{ chart_items|tojson }};
+            var topLabels = {{ top_product_labels|tojson }};
+            var topData = {{ top_product_sold|tojson }};
+
+            new Chart(document.getElementById('incomeChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Income (₹)',
+                        data: incomeData,
+                        borderColor: '#1e8449',
+                        backgroundColor: 'rgba(30,132,73,0.15)',
+                        tension: 0.3,
+                        fill: true,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    plugins: { title: { display: true, text: 'Daily Income (Up / Down)' } },
+                },
+            });
+
+            new Chart(document.getElementById('itemsChart'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Items Sold',
+                        data: itemsData,
+                        backgroundColor: '#1a5276',
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    plugins: { title: { display: true, text: 'Items Sold Per Day' } },
+                },
+            });
+
+            if (topLabels.length) {
+                new Chart(document.getElementById('topProductsChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: topLabels,
+                        datasets: [{
+                            label: 'Units Sold',
+                            data: topData,
+                            backgroundColor: '#e67e22',
+                        }],
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        plugins: { title: { display: true, text: 'Top Selling Products' } },
+                    },
+                });
+            }
+        })();
+    </script>
+    {% else %}
+        <p>No sales yet — graphs will appear here once orders start coming in.</p>
+    {% endif %}
+
+    <h2 class="section-title">Sales by Date</h2>
+    {% if daily_stats %}
+    <table class="data-table">
+        <thead><tr><th>Date</th><th>No. of Sales (Orders)</th><th>Items Purchased</th><th>Income</th></tr></thead>
+        <tbody>
+        {% for row in daily_stats %}
+            <tr>
+                <td>{{ row.order_date.strftime('%d %b %Y') }}</td>
+                <td>{{ row.num_sales }}</td>
+                <td>{{ row.num_items }}</td>
+                <td>₹{{ '%.2f'|format(row.income) }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p>No sales recorded yet.</p>
+    {% endif %}
+
+    <h2 class="section-title">Products</h2>
+    <p class="help-text">Stock and units sold update automatically the moment an order is placed — nothing here needs manual editing.</p>
+    <table class="data-table">
+        <thead><tr><th>SKU</th><th>Name</th><th>Category</th><th>Price</th><th>Units Sold</th><th>Stock Remaining</th><th></th></tr></thead>
+        <tbody>
+        {% for product in products %}
+            <tr>
+                <td>{{ product.sku }}</td>
+                <td>{{ product.name }}</td>
+                <td>{{ product.category }}</td>
+                <td>
+                    {% if product.is_on_offer %}
+                        <span class="price-original">₹{{ '%.2f'|format(product.price) }}</span>
+                        <span class="price-current">₹{{ '%.2f'|format(product.discount_price) }}</span>
+                    {% else %}
+                        ₹{{ '%.2f'|format(product.price) }}
+                    {% endif %}
+                </td>
+                <td>{{ sold_by_product.get(product.id, 0) }}</td>
+                <td>
+                    <span class="stock-note {{ 'low' if product.stock < 5 }}">
+                        {% if product.in_stock %}{{ product.stock }}{% else %}Out of stock{% endif %}
+                    </span>
+                </td>
+                <td style="white-space:nowrap;">
+                    <a href="{{ url_for('owner.edit_product', product_id=product.id) }}" class="btn btn-outline" style="padding:6px 10px;font-size:0.8rem;">Edit</a>
+                    <form method="POST" action="{{ url_for('owner.delete_product', product_id=product.id) }}" style="display:inline;" onsubmit="return confirm('Delete this product?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger" style="padding:6px 10px;font-size:0.8rem;">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <h2 class="section-title">Recent Visitors</h2>
+    {% if recent_visits %}
+    <table class="data-table">
+        <thead><tr><th>When</th><th>User</th><th>Page</th><th>IP Address</th></tr></thead>
+        <tbody>
+        {% for visit in recent_visits %}
+            <tr>
+                <td>{{ visit.timestamp.strftime('%d %b %Y %H:%M') }}</td>
+                <td>{{ visit.user.username if visit.user else 'Anonymous' }}</td>
+                <td>{{ visit.path }}</td>
+                <td>{{ visit.ip_address }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p>No visits recorded yet.</p>
+    {% endif %}
+{% endblock %}
